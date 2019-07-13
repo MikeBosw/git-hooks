@@ -1,0 +1,34 @@
+set -e
+
+gjf=$(which google-java-format || echo "")
+
+if [ -z "$gjf" ] ; then
+  echo "Not running google-java-format because it's not installed."
+  exit 0
+fi
+
+javafiles=$(git diff --cached --name-only --diff-filter=ACM | grep '.java$' || true)
+[ -z "$javafiles" ] && exit 0
+unformatted=$(google-java-format -n $javafiles | tr "\n" " ")
+[ -z "$unformatted" ] && exit 0
+
+unstagedjavafiles=$(git diff --name-only --diff-filter=ACM | grep '.java$' || true)
+if [ ! -z "$unstagedjavafiles" ] ; then
+  # in this case, what's been git-added and what's in the working directory differ
+  # so... don't format anything, just ensure working directory files are formatted
+  echo "Not all Java changes are formatted, and working directory has unstaged changes. Run the following.\ngoogle-java-format -r ${unformatted}\ngit add ${unformatted}"
+  exit 1
+fi
+
+echo "Running google-java-format on: $unformatted"
+google-java-format -i $unformatted
+formatted=$unformatted
+
+git add $formatted
+
+if [ $? -ne 0 ] ; then
+  echo 'could not stage newly formatted files (i.e., "git add" failed)'
+  exit 1
+fi
+
+set +ex
