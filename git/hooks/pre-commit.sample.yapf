@@ -1,0 +1,30 @@
+set -e
+
+yapf=$(which yapf || echo "")
+
+if [ -z "$yapf" ] ; then
+  echo "Not running yapf because it's not installed."
+  exit 0
+fi
+
+unstagedpyfiles=$(git diff --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || echo "could not determine.")
+if [ ! -z "$unstagedpyfiles" ] ; then
+  # in this case, what's been git-added and what's in the working directory differ
+  # so... don't format anything, just ensure working directory files are formatted
+  echo "Working directory unstaged changes: ${unstagedpyfiles}" 
+  exit 1
+fi
+
+pyfiles=$(git diff --cached --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || true)
+[ -z "$pyfiles" ] && exit 0
+
+echo "Running yapf on: ${pyfiles}"
+yapf --style google -i $pyfiles
+git add $pyfiles
+
+if [ $? -ne 0 ] ; then
+  echo 'could not stage newly formatted files (i.e., "git add" failed)'
+  exit 1
+fi
+
+set +ex
