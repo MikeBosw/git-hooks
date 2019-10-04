@@ -14,7 +14,8 @@ unstagedpyfiles=$(git diff --name-only --diff-filter=ACM | grep '.py$' | tr "\n"
 if [ ! -z "$unstagedpyfiles" ] ; then
   # in this case, what's been git-added and what's in the working directory differ
   # so... don't do anything.
-  echo "Working directory unstaged changes: ${unstagedpyfiles}" 
+  echo "Working directory has unstaged Python changes: ${unstagedpyfiles}" 
+  echo "Either include these files in your commit, or stash them using `git stash -k`."
   exit 1
 fi
 
