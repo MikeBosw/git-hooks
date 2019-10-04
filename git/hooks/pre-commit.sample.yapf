@@ -7,21 +7,34 @@ if [ -z "$yapf" ] ; then
   exit 0
 fi
 
+
+# does the working directory have unstaged changes?
+
 unstagedpyfiles=$(git diff --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || echo "could not determine.")
 if [ ! -z "$unstagedpyfiles" ] ; then
   # in this case, what's been git-added and what's in the working directory differ
-  # so... don't format anything, just ensure working directory files are formatted
+  # so... don't do anything.
   echo "Working directory unstaged changes: ${unstagedpyfiles}" 
   exit 1
 fi
 
+
+# determine which Python files are to be modified by this commit.
+
 pyfiles=$(git diff --cached --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || true)
 [ -z "$pyfiles" ] && exit 0
 
+
+# format the Python files modified by this commit.
+
 echo "Running yapf on: ${pyfiles}"
 yapf --style google -i $pyfiles
-git add $pyfiles
+if [ $? -ne 0 ] ; then
+  echo 'could not format the Python files staged for commit'
+  exit 1
+fi
 
+git add $pyfiles
 if [ $? -ne 0 ] ; then
   echo 'could not stage newly formatted files (i.e., "git add" failed)'
   exit 1
