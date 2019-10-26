@@ -8,22 +8,20 @@ if [ -z "$yapf" ] ; then
 fi
 
 
-# does the working directory have unstaged changes?
-
-unstagedpyfiles=$(git diff --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || echo "could not determine.")
-if [ ! -z "$unstagedpyfiles" ] ; then
-  # in this case, what's been git-added and what's in the working directory differ
-  # so... don't do anything.
-  echo "Working directory has unstaged Python changes: ${unstagedpyfiles}" 
-  echo "Either include these files in your commit, or stash them using `git stash -k`."
-  exit 1
-fi
-
-
 # determine which Python files are to be modified by this commit.
 
 pyfiles=$(git diff --cached --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || true)
 [ -z "$pyfiles" ] && exit 0
+
+
+# does the working directory have unstaged changes?
+unstagedpyfiles=$(git diff --name-only --diff-filter=ACM -- ${pyfiles} | grep '.py$' | tr "\n" "\ " || echo "could not determine.")
+if [ ! -z "$unstagedpyfiles" ] ; then
+  # in this case, what's been git-added and what's in the working directory differ
+  # so... don't do anything.
+  echo "Working directory has conflicting unstaged changes: ${unstagedpyfiles}" 
+  exit 1
+fi
 
 
 # format the Python files modified by this commit.
