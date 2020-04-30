@@ -1,0 +1,45 @@
+### black
+
+run_black() {
+  set -e
+  black=$(which black || echo "")
+
+  if [ -z "$black" ] ; then
+    echo "Not running black because it's not installed."
+    return 0
+  fi
+
+  # determine which Python files are to be modified by this commit.
+
+  pyfiles=$(git diff --cached --name-only --diff-filter=ACM | grep '.py$' | tr "\n" "\ " || true)
+  [ -z "$pyfiles" ] && return 0
+
+  # does the working directory have unstaged changes?
+unstagedpyfiles=$(git diff --name-only --diff-filter=ACM -- ${pyfiles} | grep '.py$' | tr "\n" "\ " || echo "could not determine.")
+if [ ! -z "$unstagedpyfiles" ] ; then
+  # in this case, what's been git-added and what's in the working directory differ
+  # so... don't do anything.
+  echo "Working directory has conflicting unstaged changes: ${unstagedpyfiles}"
+  return 1
+fi
+
+
+# format the Python files modified by this commit.
+
+echo "Running black on: ${pyfiles}"
+black $pyfiles
+if [ $? -ne 0 ] ; then
+  echo 'could not format the Python files staged for commit'
+  return 1
+fi
+
+git add $pyfiles
+if [ $? -ne 0 ] ; then
+  echo 'could not stage newly formatted files (i.e., "git add" failed)'
+  return 1
+fi
+set +e
+}
+
+run_black $*
+
